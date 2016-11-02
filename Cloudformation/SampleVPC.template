@@ -1,0 +1,86 @@
+{
+	"AWSTemplateFormatVersion" : "2010-09-09",
+	"Description" : "VPC Sample",
+
+	"Resources" : {
+
+		"VPC" : {
+			"Type" : "AWS::EC2::VPC",
+			"Properties" : {
+				"CidrBlock" : "10.0.0.0/16",
+				"EnableDnsSupport" : "true",
+				"EnableDnsHostnames" : "true",
+				"InstanceTenancy" : "default",
+				"Tags" : [
+					{ "Key" : "Application" , "Value" : { "Ref" : "AWS::StackName" } },
+					{ "Key" : "Network" , "Value" : "Public" }
+				]
+			}
+		},
+
+		"PublicSubnet" : {
+			"Type" : "AWS::EC2::Subnet",
+			"Properties" : {
+				"CidrBlock" : "10.0.0.0/24",
+				"VpcId" : { "Ref" : "VPC" },
+				"Tags" : [
+					{ "Key" : "Application" , "Value" : { "Ref" : "AWS::StackName" } },
+					{ "Key" : "Network" , "Value" : "Public" }
+				]
+			}
+		},
+
+		"InternetGateway" : {
+			"Type" : "AWS::EC2::InternetGateway"
+		},
+
+		"InternetGatewayAttachment" : {
+			"Type" : "AWS::EC2::VPCGatewayAttachment",
+			"Properties" : {
+				"VpcId" : { "Ref" : "VPC" },
+				"InternetGatewayId" : { "Ref" : "InternetGateway" }
+			}
+		},
+
+		"PublicRouteTable" : {
+			"Type" : "AWS::EC2::RouteTable",
+			"Properties" : {
+				"VpcId" : { "Ref" : "VPC" }
+			}
+		},
+
+		"PublicRoute" : {
+			"Type" : "AWS::EC2::Route",
+			"DependsOn" : "InternetGatewayAttachment",
+			"Properties" : {
+				"RouteTableId" : { "Ref" : "PublicRouteTable" },
+				"DestinationCidrBlock" : "0.0.0.0/0",
+				"GatewayId" : { "Ref" : "InternetGateway" }
+			}
+		},
+
+		"PublicSubnetRouteTableAssociation" : {	
+			"Type" : "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties" : {
+				"SubnetId" : { "Ref" : "PublicSubnet" },
+				"RouteTableId" : { "Ref" : "PublicRouteTable" }
+			}
+		},
+
+		"PublicInstance" : {
+			"Type" : "AWS::EC2::Instance",
+			"DependsOn" : "InternetGatewayAttachment",
+			"Properties" : {
+				"InstanceType" : "t1.micro",
+				"ImageId" : "ami-fb8e9292",
+				"NetworkInterfaces" : [{
+					"AssociatePublicIpAddress" : "true",
+					"DeviceIndex" : "0",
+					"DeleteOnTermination" : "true",
+					"SubnetId" : { "Ref" : "PublicSubnet" }
+				}]
+			}
+		}
+
+	}
+}
